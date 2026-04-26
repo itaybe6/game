@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>חלליות חמודות — פרונט נפרד</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <aside class="side" aria-label="איור לצד המשחק">
+        <img
+          class="side-art"
+          src="/static/side-hero.svg"
+          width="320"
+          height="520"
+          alt="אסטרונאוט ניאון בחלל"
+        />
+        <p class="side-tag">
+          הפרונט רץ בקונטיינר nginx; ה־API בקונטיינר נפרד. הדפדפן מדבר עם nginx בלבד
+          (<code>/api/…</code> מתווך ל־FastAPI).
+        </p>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <h1>חלליות חמודות</h1>
+          <p class="sub">
+            חצים / A-D · רווח לירייה · אסטרואידים · סוגי אויבים · בוס כל 5 גלים · אספקות (מגן / טריפל / מהירות)
+          </p>
+        </header>
+        <div class="canvas-wrap">
+          <canvas id="game" width="960" height="640" tabindex="0"></canvas>
+        </div>
+        <div id="server-line" class="server-line" role="status"></div>
+      </main>
+    </div>
+    <div id="go-overlay" class="go-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="go-title">
+      <div class="go-card">
+        <h2 id="go-title">נגמר הסיבוב</h2>
+        <ul id="go-stats" class="go-stats"></ul>
+        <label for="player-name">שם ללוח תוצאות (אופציונלי)</label>
+        <input id="player-name" type="text" maxlength="32" autocomplete="nickname" />
+        <div class="go-actions">
+          <button type="button" id="btn-save">שמירה</button>
+          <button type="button" id="btn-skip" class="secondary">דלג</button>
+        </div>
+        <p id="go-msg"></p>
+      </div>
+    </div>
+    <script src="/static/game.js"></script>
+  </body>
+</html>

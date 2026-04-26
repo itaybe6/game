@@ -1,0 +1,248 @@
+:root {
+  --bg0: #070814;
+  --bg1: #12183a;
+  --accent: #7cf0ff;
+  --accent2: #ff7eb3;
+  --text: #e8eeff;
+  --muted: #9aa6c9;
+  --panel: rgba(18, 24, 52, 0.72);
+  --glow: 0 0 42px rgba(124, 240, 255, 0.22);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 800px at 80% 0%, #1a1f4a 0%, var(--bg0) 55%);
+}
+
+body {
+  line-height: 1.45;
+}
+
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+  display: flex;
+  flex-direction: row;
+  direction: ltr;
+  gap: 1.75rem;
+  align-items: flex-start;
+}
+
+.side {
+  order: 2;
+  flex: 0 0 min(320px, 34vw);
+  position: sticky;
+  top: 1rem;
+  direction: rtl;
+  text-align: right;
+}
+
+.side-art {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(var(--glow));
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(30, 40, 90, 0.5), transparent);
+  padding: 0.5rem;
+}
+
+.side-tag {
+  margin: 0.85rem 0 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.side-tag code {
+  font-size: 0.85em;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.main {
+  order: 1;
+  flex: 1;
+  min-width: 0;
+  direction: rtl;
+  text-align: right;
+}
+
+.topbar h1 {
+  margin: 0 0 0.2rem;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sub {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.canvas-wrap {
+  border-radius: 14px;
+  padding: 3px;
+  background: linear-gradient(135deg, rgba(124, 240, 255, 0.35), rgba(255, 126, 179, 0.25));
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45), var(--glow);
+}
+
+#game {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  aspect-ratio: 960 / 640;
+  background: #0c1028;
+  border-radius: 12px;
+  outline: none;
+  cursor: crosshair;
+}
+
+.server-line {
+  margin-top: 0.65rem;
+  font-size: 0.88rem;
+  min-height: 1.25em;
+}
+
+.server-line.ok {
+  color: #9cf5c8;
+}
+
+.server-line.bad {
+  color: #ffb4b4;
+}
+
+.go-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 8, 20, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+  padding: 1rem;
+}
+
+.go-overlay.hidden {
+  display: none;
+}
+
+.go-card {
+  width: min(420px, 100%);
+  padding: 1.35rem 1.25rem;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid rgba(124, 240, 255, 0.28);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  direction: rtl;
+  text-align: right;
+}
+
+.go-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.go-stats {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.go-stats li {
+  margin: 0.25rem 0;
+}
+
+.go-card label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.go-card input[type="text"] {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(124, 240, 255, 0.35);
+  background: rgba(10, 14, 36, 0.9);
+  color: var(--text);
+  font: inherit;
+  margin-bottom: 0.85rem;
+}
+
+.go-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.go-actions button {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4a6bff, #7cf0ff);
+  color: #0a0f2e;
+  font-weight: 600;
+}
+
+.go-actions button.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#go-msg {
+  margin: 0.75rem 0 0;
+  min-height: 1.25em;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .page {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .side {
+    position: static;
+    flex: none;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .side-art {
+    max-width: 160px;
+  }
+
+  .side-tag {
+    margin: 0;
+    flex: 1;
+  }
+}
