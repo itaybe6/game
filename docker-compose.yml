@@ -40,8 +40,23 @@ services:
     networks:
       - notes_net
 
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    image: notes-jenkins:local
+    restart: unless-stopped
+    ports:
+      - "${JENKINS_HTTP_PORT:-8081}:8080"
+      - "${JENKINS_AGENT_PORT:-50000}:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - notes_net
+
 volumes:
   postgres_data:
+  jenkins_home:
 
 networks:
   notes_net:
