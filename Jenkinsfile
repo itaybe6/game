@@ -39,9 +39,10 @@ pipeline {
                                 exit 1
                               fi
                             fi
-                            # Replace only app containers (avoid name conflicts / half-stopped recreate); do not touch jenkins
-                            docker compose stop db app frontend 2>/dev/null || true
-                            docker compose rm -f db app frontend 2>/dev/null || true
+                            # Force-remove any container (any name/run) using our ports, except jenkins
+                            docker ps -aq --filter "name=notes-api-db"       | xargs -r docker rm -f || true
+                            docker ps -aq --filter "name=notes-api-app"      | xargs -r docker rm -f || true
+                            docker ps -aq --filter "name=notes-api-frontend" | xargs -r docker rm -f || true
                             docker compose up -d --remove-orphans db app frontend
                         '''
                     } else {
