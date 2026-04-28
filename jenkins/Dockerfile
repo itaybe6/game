@@ -13,6 +13,7 @@ RUN . /etc/os-release \
   && apt-get update \
   && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
   && rm -rf /var/lib/apt/lists/* \
+  && (getent group docker >/dev/null || groupadd -r docker) \
   && usermod -aG docker jenkins
 
 USER jenkins
