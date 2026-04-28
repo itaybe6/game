@@ -15,10 +15,11 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    // App stack only — avoid building jenkins/ngrok (CI runs inside Jenkins; 8081 already in use)
                     if (isUnix()) {
-                        sh 'docker compose build'
+                        sh 'docker compose build db app frontend'
                     } else {
-                        bat 'docker compose build'
+                        bat 'docker compose build db app frontend'
                     }
                 }
             }
@@ -38,7 +39,7 @@ pipeline {
                                 exit 1
                               fi
                             fi
-                            docker compose up -d
+                            docker compose up -d db app frontend
                         '''
                     } else {
                         bat '''
@@ -51,7 +52,7 @@ pipeline {
                                 exit /b 1
                               )
                             )
-                            docker compose up -d
+                            docker compose up -d db app frontend
                         '''
                     }
                 }
@@ -61,7 +62,7 @@ pipeline {
 
     post {
         success {
-            echo 'הפייפליין הושלם בהצלחה: Checkout, Build (docker compose build) ו-Deploy (docker compose up -d).'
+            echo 'הפייפליין הושלם בהצלחה: Checkout, Build ו-Deploy (db, app, frontend בלבד — ללא jenkins/ngrok).'
         }
         failure {
             echo 'הפייפליין נכשל. בדוק את לוגי השלבים (Checkout / Build / Deploy) ואת זמינות Docker וקובץ .env לפי הצורך.'
