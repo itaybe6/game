@@ -25,6 +25,55 @@ pipeline {
             }
         }
 
+        // pytest בתוך app-test מול Postgres (profile ci) — פרויקט compose נפרד כדי לא לסגור את הסטאק הראשי.
+        stage('Test') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            set -e
+                            if [ ! -f .env ]; then
+                              if [ -f .env.example ]; then
+                                cp .env.example .env
+                                echo "Created .env from .env.example (not in Git)."
+                              else
+                                echo "ERROR: .env missing and no .env.example to copy." >&2
+                                exit 1
+                              fi
+                            fi
+                            mkdir -p backend/test-results
+                            export POSTGRES_HOST_PORT=15432
+                            docker compose -p notes-api-ci --profile ci build db app-test
+                            docker compose -p notes-api-ci --profile ci up -d db
+                            docker compose -p notes-api-ci --profile ci run --rm \
+                              -v "${WORKSPACE}/backend/test-results:/report" \
+                              app-test \
+                              sh -c 'pytest tests -v --tb=short --junitxml=/report/junit.xml'
+                            docker compose -p notes-api-ci --profile ci down -v
+                        '''
+                    } else {
+                        bat '''
+                            if not exist .env (
+                              if exist .env.example (
+                                copy /Y .env.example .env
+                                echo Created .env from .env.example
+                              ) else (
+                                echo ERROR: .env missing and no .env.example
+                                exit /b 1
+                              )
+                            )
+                            if not exist backend\\test-results mkdir backend\\test-results
+                            set POSTGRES_HOST_PORT=15432
+                            docker compose -p notes-api-ci --profile ci build db app-test
+                            docker compose -p notes-api-ci --profile ci up -d db
+                            docker compose -p notes-api-ci --profile ci run --rm -v "%WORKSPACE%\\backend\\test-results:/report" app-test sh -c "pytest tests -v --tb=short --junitxml=/report/junit.xml"
+                            docker compose -p notes-api-ci --profile ci down -v
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('Deploy') {
             steps {
                 script {
@@ -70,10 +119,13 @@ pipeline {
 
     post {
         success {
-            echo 'הפייפליין הושלם בהצלחה: Checkout, Build ו-Deploy (db, app, frontend בלבד — ללא jenkins/ngrok).'
+            echo 'הפייפליין הושלם בהצלחה: Checkout, Build, Test (pytest) ו-Deploy (db, app, frontend בלבד — ללא jenkins/ngrok).'
         }
         failure {
-            echo 'הפייפליין נכשל. בדוק את לוגי השלבים (Checkout / Build / Deploy) ואת זמינות Docker וקובץ .env לפי הצורך.'
+            echo 'הפייפליין נכשל. בדוק את לוגי השלבים (Checkout / Build / Test / Deploy) ואת זמינות Docker וקובץ .env לפי הצורך.'
+        }
+        always {
+            junit allowEmptyResults: true, testResults: 'backend/test-results/junit.xml'
         }
     }
 }
