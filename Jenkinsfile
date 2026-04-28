@@ -39,7 +39,10 @@ pipeline {
                                 exit 1
                               fi
                             fi
-                            docker compose up -d db app frontend
+                            # Replace only app containers (avoid name conflicts / half-stopped recreate); do not touch jenkins
+                            docker compose stop db app frontend 2>/dev/null || true
+                            docker compose rm -f db app frontend 2>/dev/null || true
+                            docker compose up -d --remove-orphans db app frontend
                         '''
                     } else {
                         bat '''
@@ -52,7 +55,7 @@ pipeline {
                                 exit /b 1
                               )
                             )
-                            docker compose up -d db app frontend
+                            docker compose stop db app frontend 2>nul & docker compose rm -f db app frontend 2>nul & docker compose up -d --remove-orphans db app frontend
                         '''
                     }
                 }
