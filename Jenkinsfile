@@ -39,10 +39,14 @@ pipeline {
                                 exit 1
                               fi
                             fi
-                            # Force-remove any container (any name/run) using our ports, except jenkins
-                            docker ps -aq --filter "name=notes-api-db"       | xargs -r docker rm -f || true
-                            docker ps -aq --filter "name=notes-api-app"      | xargs -r docker rm -f || true
-                            docker ps -aq --filter "name=notes-api-frontend" | xargs -r docker rm -f || true
+                            # Kill any container holding our ports (regardless of name/project)
+                            for port in 5432 8000 9080; do
+                              cid=$(docker ps -q --filter "publish=${port}")
+                              if [ -n "$cid" ]; then
+                                echo "Removing container on port ${port}: $cid"
+                                docker rm -f "$cid" || true
+                              fi
+                            done
                             docker compose up -d --remove-orphans db app frontend
                         '''
                     } else {
