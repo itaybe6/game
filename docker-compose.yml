@@ -54,6 +54,21 @@ services:
     networks:
       - notes_net
 
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    depends_on:
+      - jenkins
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
+    command: http jenkins:8080
+    ports:
+      - "4040:4040"
+    networks:
+      - notes_net
+    profiles:
+      - dev
+
 volumes:
   postgres_data:
   jenkins_home:
