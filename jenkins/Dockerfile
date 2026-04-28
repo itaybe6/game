@@ -2,7 +2,9 @@ FROM jenkins/jenkins:lts-jdk17
 
 USER root
 
-# Docker CLI + Compose v2; combine with /var/run/docker.sock mount in docker-compose
+# Docker CLI + Compose v2 + buildx (Compose warns without buildx).
+# Socket access: Docker Desktop often uses root:root (660) → need supplementary gid 0;
+# Linux often uses group docker (e.g. 999) → see group_add in docker-compose.yml
 RUN . /etc/os-release \
   && apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
@@ -11,7 +13,7 @@ RUN . /etc/os-release \
   && chmod a+r /etc/apt/keyrings/docker.gpg \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian ${VERSION_CODENAME} stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
   && apt-get update \
-  && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
+  && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin docker-buildx-plugin \
   && rm -rf /var/lib/apt/lists/* \
   && (getent group docker >/dev/null || groupadd -r docker) \
   && usermod -aG docker jenkins
