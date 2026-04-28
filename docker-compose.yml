@@ -46,11 +46,17 @@ services:
       dockerfile: Dockerfile
     image: notes-jenkins:local
     restart: unless-stopped
+    # If you see "permission denied" on /var/run/docker.sock, set DOCKER_GID in .env
+    # to the host socket GID (on Linux: stat -c '%g' /var/run/docker.sock) e.g. 1001
+    group_add:
+      - "${DOCKER_GID:-999}"
     ports:
       - "${JENKINS_HTTP_PORT:-8081}:8080"
       - "${JENKINS_AGENT_PORT:-50000}:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
+      # Host Docker socket — same engine as Docker Desktop; image must include docker CLI
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - notes_net
 
