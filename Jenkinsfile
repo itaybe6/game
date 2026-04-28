@@ -28,9 +28,31 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'docker compose up -d'
+                        sh '''
+                            if [ ! -f .env ]; then
+                              if [ -f .env.example ]; then
+                                cp .env.example .env
+                                echo "Created .env from .env.example (not in Git)."
+                              else
+                                echo "ERROR: .env missing and no .env.example to copy." >&2
+                                exit 1
+                              fi
+                            fi
+                            docker compose up -d
+                        '''
                     } else {
-                        bat 'docker compose up -d'
+                        bat '''
+                            if not exist .env (
+                              if exist .env.example (
+                                copy /Y .env.example .env
+                                echo Created .env from .env.example
+                              ) else (
+                                echo ERROR: .env missing and no .env.example
+                                exit /b 1
+                              )
+                            )
+                            docker compose up -d
+                        '''
                     }
                 }
             }
