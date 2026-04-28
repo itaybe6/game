@@ -46,7 +46,7 @@ services:
       dockerfile: Dockerfile
     image: notes-jenkins:local
     restart: unless-stopped
-    # Docker Desktop: socket often root:root (660) → need gid 0. Linux: often docker gid 999 or 1001.
+    # Docker Desktop:socket often root:root (660) → need gid 0. Linux: often docker gid 999 or 1001.
     group_add:
       - "0"
       - "999"
