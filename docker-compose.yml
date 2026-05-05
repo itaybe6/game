@@ -17,6 +17,7 @@ services:
       - notes_net
 
   app:
+    image: ${BACKEND_IMAGE:-game-backend:local}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -48,6 +49,7 @@ services:
       - ci
 
   frontend:
+    image: ${FRONTEND_IMAGE:-game-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile

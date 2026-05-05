@@ -4,8 +4,6 @@
   const HEIGHT = 640;
   const SPACE = [12, 18, 42];
   const STAR_LOW = [180, 200, 255];
-  const SHIP_BODY = [255, 140, 190];
-  const SHIP_ACCENT = [120, 220, 255];
   const HUD = [230, 240, 255];
 
   const canvas = document.getElementById("game");
@@ -42,6 +40,11 @@
 
   function dist(ax, ay, bx, by) {
     return Math.hypot(ax - bx, ay - by);
+  }
+
+  function stagePaceMul(w) {
+    const waveNum = Math.max(1, w);
+    return 1 + Math.min(1.15, (waveNum - 1) * 0.085);
   }
 
   function makeStars(n = 120) {
@@ -170,8 +173,27 @@
     return "grunt";
   }
 
+  function rollAlienShape(w) {
+    const r = Math.random();
+    if (w <= 2) return r < 0.82 ? "circle" : "diamond";
+    if (w <= 4) {
+      if (r < 0.38) return "circle";
+      if (r < 0.68) return "diamond";
+      return "hex";
+    }
+    if (w <= 6) {
+      if (r < 0.22) return "circle";
+      if (r < 0.48) return "diamond";
+      if (r < 0.72) return "hex";
+      return "star";
+    }
+    const hi = ["circle", "diamond", "hex", "star", "crystal"];
+    return hi[(Math.random() * hi.length) | 0];
+  }
+
   function makeAlien(w) {
     const kind = rollAlienKind(w);
+    const shape = rollAlienShape(w);
     const x = 70 + Math.random() * (WIDTH - 140);
     const y = -12 - Math.random() * 36;
     const phase = Math.random() * Math.PI * 2;
@@ -181,6 +203,7 @@
         y,
         phase,
         kind,
+        shape,
         radius: 19,
         hp: 1,
         maxHp: 1,
@@ -195,6 +218,7 @@
         y,
         phase,
         kind,
+        shape,
         radius: 34,
         hp: 4,
         maxHp: 4,
@@ -208,6 +232,7 @@
       y,
       phase,
       kind: "grunt",
+      shape,
       radius: 26,
       hp: 1,
       maxHp: 1,
@@ -303,7 +328,7 @@
     const lines = [
       `ניקוד: ${score}`,
       `חיסולים: ${kills}`,
-      `גל מקסימלי: ${wave}`,
+      `שלב מקסימלי: ${wave}`,
       `זמן משחק: ${tGame.toFixed(1)} שניות`,
     ];
     for (const t of lines) {
@@ -377,7 +402,7 @@
     score = 0;
     runT0 = performance.now() / 1000;
     waveBanner = 1.15;
-    waveBannerText = "גל חדש! קצב עולה";
+    waveBannerText = "שלב 1 — קצב בסיסי";
     tGame = 0;
     tilt = 0;
     shieldCharges = 0;
@@ -387,29 +412,79 @@
     canvas.focus();
   }
 
-  function drawShip(x, y, tiltDeg) {
+  function shipThemeForWave(w) {
+    const s = Math.max(1, Math.min(8, w));
+    const themes = [
+      { body: [255, 140, 190], accent: [120, 220, 255], glow: "#ffd0e8", fin: "classic" },
+      { body: [130, 220, 255], accent: [255, 180, 230], glow: "#d8f8ff", fin: "classic" },
+      { body: [255, 200, 120], accent: [180, 120, 255], glow: "#fff0c8", fin: "twin" },
+      { body: [160, 255, 190], accent: [255, 120, 160], glow: "#e0ffe8", fin: "delta" },
+      { body: [220, 140, 255], accent: [120, 255, 220], glow: "#f0d8ff", fin: "wide" },
+      { body: [255, 150, 120], accent: [100, 200, 255], glow: "#ffe8d8", fin: "twin" },
+      { body: [100, 255, 200], accent: [255, 100, 180], glow: "#c8ffe8", fin: "delta" },
+      { body: [240, 240, 255], accent: [255, 80, 200], glow: "#ffffff", fin: "saucer" },
+    ];
+    return themes[s - 1];
+  }
+
+  function drawShip(x, y, tiltDeg, waveNum) {
+    const th = shipThemeForWave(waveNum);
+    const bodyRgb = th.body;
+    const accRgb = th.accent;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((tiltDeg * Math.PI) / 180);
     const w = 86;
     const h = 52;
+
     ctx.beginPath();
-    ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
-    const g = ctx.createRadialGradient(-8, -6, 4, 0, 0, 48);
-    g.addColorStop(0, "#ffd0e8");
-    g.addColorStop(1, `rgb(${SHIP_BODY.join(",")})`);
+    if (th.fin === "saucer") {
+      ctx.ellipse(0, 4, w / 2 + 4, h / 2 - 6, 0, 0, Math.PI * 2);
+    } else if (th.fin === "delta") {
+      ctx.moveTo(0, -h / 2 - 4);
+      ctx.lineTo(w / 2 + 2, h / 2 - 4);
+      ctx.lineTo(0, h / 2 - 8);
+      ctx.lineTo(-w / 2 - 2, h / 2 - 4);
+      ctx.closePath();
+    } else if (th.fin === "wide") {
+      ctx.ellipse(0, 2, w / 2 + 10, h / 2 - 4, 0, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    }
+    const g = ctx.createRadialGradient(-8, -6, 4, 0, 0, 52);
+    g.addColorStop(0, th.glow);
+    g.addColorStop(1, `rgb(${bodyRgb.join(",")})`);
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = waveNum >= 6 ? "rgba(180,255,255,0.45)" : "rgba(255,255,255,0.25)";
+    ctx.lineWidth = waveNum >= 6 ? 3 : 2;
     ctx.stroke();
 
-    ctx.fillStyle = `rgb(${SHIP_ACCENT.join(",")})`;
+    ctx.fillStyle = `rgb(${accRgb.join(",")})`;
     ctx.beginPath();
-    ctx.moveTo(0, -h / 2 - 6);
-    ctx.lineTo(18, -4);
-    ctx.lineTo(-18, -4);
-    ctx.closePath();
+    if (th.fin === "twin") {
+      ctx.moveTo(0, -h / 2 - 8);
+      ctx.lineTo(14, -2);
+      ctx.lineTo(-14, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-22, -h / 2 + 8);
+      ctx.lineTo(-8, 6);
+      ctx.lineTo(-28, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(22, -h / 2 + 8);
+      ctx.lineTo(8, 6);
+      ctx.lineTo(28, 10);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(0, -h / 2 - 6);
+      ctx.lineTo(18, -4);
+      ctx.lineTo(-18, -4);
+      ctx.closePath();
+    }
     ctx.fill();
 
     if (shieldCharges > 0) {
@@ -420,7 +495,7 @@
       ctx.stroke();
     }
 
-    ctx.fillStyle = "rgba(90,60,120,0.85)";
+    ctx.fillStyle = `rgba(${Math.floor(bodyRgb[0] * 0.35)},${Math.floor(bodyRgb[1] * 0.35)},${Math.floor(bodyRgb[2] * 0.45)},0.88)`;
     ctx.beginPath();
     roundRect(ctx, -w / 2 + 10, 2, 18, 18, 6);
     ctx.fill();
@@ -438,6 +513,64 @@
     c.arcTo(x, y + h, x, y, rr);
     c.arcTo(x, y, x + w, y, rr);
     c.closePath();
+  }
+
+  function alienSilhouettePath(x, y, rad, shape, rotation = 0) {
+    ctx.beginPath();
+    if (shape === "circle" || !shape) {
+      ctx.arc(x, y, rad, 0, Math.PI * 2);
+      return;
+    }
+    if (shape === "diamond") {
+      const s = rad * 1.06;
+      ctx.moveTo(x, y - s);
+      ctx.lineTo(x + s, y);
+      ctx.lineTo(x, y + s);
+      ctx.lineTo(x - s, y);
+      ctx.closePath();
+      return;
+    }
+    if (shape === "hex") {
+      for (let i = 0; i < 6; i++) {
+        const ang = rotation + (i / 6) * Math.PI * 2 - Math.PI / 2;
+        const px = x + Math.cos(ang) * rad;
+        const py = y + Math.sin(ang) * rad;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      return;
+    }
+    if (shape === "star") {
+      const pts = 5;
+      const inner = rad * 0.42;
+      const outer = rad * 1.02;
+      for (let i = 0; i < pts * 2; i++) {
+        const rr = i % 2 === 0 ? outer : inner;
+        const ang = rotation + (i / (pts * 2)) * Math.PI * 2 - Math.PI / 2;
+        const px = x + Math.cos(ang) * rr;
+        const py = y + Math.sin(ang) * rr;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      return;
+    }
+    if (shape === "crystal") {
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        const ang = rotation + (i / n) * Math.PI * 2;
+        const jitter = 0.72 + 0.28 * Math.sin(i * 3.1 + rotation * 2);
+        const rr = rad * jitter;
+        const px = x + Math.cos(ang) * rr;
+        const py = y + Math.sin(ang) * rr;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      return;
+    }
+    ctx.arc(x, y, rad, 0, Math.PI * 2);
   }
 
   function drawAlienFace(x, y, rad, color) {
@@ -461,16 +594,17 @@
 
   function drawAlien(a) {
     const { x, y, radius: rad, color } = a;
-    ctx.beginPath();
-    ctx.arc(x, y, rad, 0, Math.PI * 2);
-    const ag = ctx.createRadialGradient(x - 6, y - 8, 4, x, y, rad);
+    const shape = a.shape || "circle";
+    const rot = a.phase * 0.15 + tGame * (shape === "crystal" ? 0.7 : 0.25);
+    alienSilhouettePath(x, y, rad, shape, rot);
+    const ag = ctx.createRadialGradient(x - 6, y - 8, 4, x, y, rad * 1.08);
     ag.addColorStop(0, "#ffffff55");
     ag.addColorStop(0.35, `rgb(${color.join(",")})`);
     ag.addColorStop(1, "#2a1a44");
     ctx.fillStyle = ag;
     ctx.fill();
-    ctx.strokeStyle = "rgba(40,20,60,0.9)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = shape === "star" || shape === "crystal" ? "rgba(255,200,140,0.85)" : "rgba(40,20,60,0.9)";
+    ctx.lineWidth = shape === "hex" ? 3.5 : 3;
     ctx.stroke();
     drawAlienFace(x, y, rad, color);
     if (a.maxHp > 1) {
@@ -581,7 +715,7 @@
     ctx.fillStyle = `rgb(${HUD.join(",")})`;
     const lines = [
       "חצים / A-D · רווח לירייה · עכבר/מגע",
-      "אסטרואידים, טנקים, בייגלים מהירים, בוס כל 5 גלים",
+      "אסטרואידים, טנקים, בייגלים מהירים — שלב חדש כל 9 חיסולים · בוס כל 5 שלבים",
       "אספקות: מגן / ירייה מהירה / שלוש כיוונים",
       "",
       "לחץ רווח כדי להתחיל",
@@ -598,7 +732,7 @@
     if (leaderboard && leaderboard.length) {
       let yy = 390;
       leaderboard.slice(0, 8).forEach((row, i) => {
-        const txt = `${i + 1}. ${row.player_name} — ${row.score} (גל ${row.wave_reached})`;
+        const txt = `${i + 1}. ${row.player_name} — ${row.score} (שלב ${row.wave_reached})`;
         ctx.fillText(txt, WIDTH - 60, yy);
         yy += 26;
       });
@@ -662,7 +796,7 @@
               if (kills > 0 && kills % 9 === 0) {
                 wave += 1;
                 waveBanner = 1.35;
-                waveBannerText = "גל חדש! קצב עולה";
+                waveBannerText = `שלב ${wave}! המהירות עולה`;
                 if (wave % 5 === 0 && wave >= 5 && !boss) {
                   boss = makeBoss(wave);
                   waveBanner = 2;
@@ -771,15 +905,17 @@
       tGame = now - runT0;
       waveBanner = Math.max(0, waveBanner - dt);
 
+      const starBoost = 1 + (wave - 1) * 0.028;
       for (const s of stars) {
-        s.y += s.speed * dt;
+        s.y += s.speed * dt * starBoost;
         if (s.y > HEIGHT + 4) {
           s.y = -4 - Math.random() * 20;
           s.x = Math.random() * WIDTH;
         }
       }
 
-      const spd = 430 * dt;
+      const pace = stagePaceMul(wave);
+      const spd = 430 * dt * pace;
       let moved = false;
       if (keys.has("ArrowLeft") || keys.has("KeyA")) {
         playerX -= spd;
@@ -807,17 +943,18 @@
       if (keys.has("Space") || keys.has("Enter")) tryFire();
 
       if (boss) {
-        if (boss.y < boss.anchorY) boss.y += boss.vy * dt;
+        if (boss.y < boss.anchorY) boss.y += boss.vy * dt * Math.min(1.45, stagePaceMul(wave) * 0.92);
         boss.x = WIDTH / 2 + Math.sin(tGame * 1.25 + boss.phase) * (WIDTH * 0.36 - boss.radius);
       }
 
       meteorTimer -= dt;
       if (meteorTimer <= 0) {
-        meteorTimer = 2.2 + Math.random() * 4.5;
+        const paceM = stagePaceMul(wave);
+        meteorTimer = (2.2 + Math.random() * 4.5) / Math.min(1.35, paceM * 0.92);
         meteors.push({
           x: 40 + Math.random() * (WIDTH - 80),
           y: -40,
-          vy: 95 + Math.random() * 75,
+          vy: (95 + Math.random() * 75) * (0.88 + 0.12 * paceM),
           r: 22 + Math.random() * 16,
           rot: Math.random() * Math.PI * 2,
           vr: (Math.random() - 0.5) * 2.2,
@@ -828,7 +965,8 @@
       spawnTimer -= dt;
       const cap = boss ? Math.min(4, 3 + ((wave / 3) | 0)) : Math.min(10 + wave * 2, 32);
       if (aliens.length < cap && spawnTimer <= 0 && !boss) {
-        spawnTimer = Math.max(0.32, 1.28 - wave * 0.055);
+        const paceSp = stagePaceMul(wave);
+        spawnTimer = Math.max(0.26, (1.28 - wave * 0.055) / Math.min(1.28, paceSp * 0.95));
         aliens.push(makeAlien(wave));
       }
 
@@ -838,7 +976,8 @@
       }
       bullets = bullets.filter((b) => b.y > -24 && b.x > -40 && b.x < WIDTH + 40);
 
-      const baseSy = 52 + wave * 9;
+      const paceA = stagePaceMul(wave);
+      const baseSy = (48 + wave * 11 + wave * wave * 0.22) * paceA;
       for (const a of aliens) {
         const syAlien = baseSy * a.speedMul;
         a.y += syAlien * dt;
@@ -897,7 +1036,7 @@
       for (const a of aliens) drawAlien(a);
       if (boss) drawBoss(boss);
       for (const p of powerups) drawPowerup(p);
-      drawShip(playerX, playerY, tilt);
+      drawShip(playerX, playerY, tilt, wave);
       for (const p of particles) {
         ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${Math.min(1, p.life * 2)})`;
         ctx.beginPath();
@@ -913,7 +1052,7 @@
       if (tGame < rapidUntil) buff.push("מהיר");
       if (tGame < spreadUntil) buff.push("פיזור");
       const buffStr = buff.length ? `   ${buff.join(" · ")}` : "";
-      ctx.fillText(`ניקוד ${score}   חיסולים ${kills}   גל ${wave}   זמן ${tGame.toFixed(1)}ש${buffStr}`, WIDTH - 14, 32);
+      ctx.fillText(`ניקוד ${score}   חיסולים ${kills}   שלב ${wave}   זמן ${tGame.toFixed(1)}ש${buffStr}`, WIDTH - 14, 32);
 
       if (waveBanner > 0 && waveBannerText) {
         ctx.textAlign = "center";
@@ -925,7 +1064,7 @@
       drawBullets();
       for (const a of aliens) drawAlien(a);
       if (boss) drawBoss(boss);
-      drawShip(playerX, playerY, tilt * 0.28);
+      drawShip(playerX, playerY, tilt * 0.28, wave);
       for (const p of particles) {
         ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${Math.min(1, p.life * 2)})`;
         ctx.beginPath();
