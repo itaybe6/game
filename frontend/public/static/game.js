@@ -8,6 +8,7 @@
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
+  const canvasRoot = canvas.parentElement;
   const serverLine = document.getElementById("server-line");
   const goOverlay = document.getElementById("go-overlay");
   const goStats = document.getElementById("go-stats");
@@ -15,6 +16,24 @@
   const goMsg = document.getElementById("go-msg");
   const btnSave = document.getElementById("btn-save");
   const btnSkip = document.getElementById("btn-skip");
+
+  let scaleX = 1;
+  let scaleY = 1;
+
+  function resizeGameCanvas() {
+    if (!canvasRoot) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cw = Math.max(1, canvasRoot.clientWidth);
+    const ch = Math.max(1, canvasRoot.clientHeight);
+    canvas.width = Math.floor(cw * dpr);
+    canvas.height = Math.floor(ch * dpr);
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    scaleX = canvas.width / WIDTH;
+    scaleY = canvas.height / HEIGHT;
+  }
+
+  window.addEventListener("resize", resizeGameCanvas);
 
   const keys = new Set();
   let pointerX = WIDTH / 2;
@@ -427,6 +446,30 @@
     return themes[s - 1];
   }
 
+  function drawShipEngines(yBase, accRgb, bodyRgb, waveNum) {
+    const flicker = 0.65 + 0.35 * Math.sin(tGame * 22);
+    const len = 28 + flicker * 12;
+    const hw = 9 + waveNum * 0.25;
+    for (const side of [-1, 1]) {
+      const ox = side * 24;
+      const gy = ctx.createLinearGradient(ox, yBase + 4, ox, yBase + len + 16);
+      gy.addColorStop(0, `rgba(${accRgb.join(",")},0.98)`);
+      gy.addColorStop(0.4, `rgba(${bodyRgb.join(",")},0.6)`);
+      gy.addColorStop(1, "rgba(60,120,255,0)");
+      ctx.fillStyle = gy;
+      ctx.beginPath();
+      ctx.moveTo(ox - hw, yBase + 4);
+      ctx.lineTo(ox, yBase + len + 12);
+      ctx.lineTo(ox + hw, yBase + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.72)";
+      ctx.beginPath();
+      ctx.ellipse(ox, yBase + 8, 4.2, 6.5 + flicker * 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawShip(x, y, tiltDeg, waveNum) {
     const th = shipThemeForWave(waveNum);
     const bodyRgb = th.body;
@@ -437,6 +480,10 @@
     const w = 86;
     const h = 52;
 
+    drawShipEngines(h / 2 - 2, accRgb, bodyRgb, waveNum);
+
+    ctx.shadowColor = th.glow;
+    ctx.shadowBlur = 18;
     ctx.beginPath();
     if (th.fin === "saucer") {
       ctx.ellipse(0, 4, w / 2 + 4, h / 2 - 6, 0, 0, Math.PI * 2);
@@ -451,13 +498,23 @@
     } else {
       ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
     }
-    const g = ctx.createRadialGradient(-8, -6, 4, 0, 0, 52);
+    const g = ctx.createRadialGradient(-14, -10, 6, 0, 2, 58);
     g.addColorStop(0, th.glow);
-    g.addColorStop(1, `rgb(${bodyRgb.join(",")})`);
+    g.addColorStop(0.45, `rgb(${bodyRgb.join(",")})`);
+    g.addColorStop(1, `rgb(${Math.floor(bodyRgb[0] * 0.45)},${Math.floor(bodyRgb[1] * 0.42)},${Math.floor(bodyRgb[2] * 0.55)})`);
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = waveNum >= 6 ? "rgba(180,255,255,0.45)" : "rgba(255,255,255,0.25)";
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = waveNum >= 6 ? "rgba(180,255,255,0.55)" : "rgba(255,255,255,0.32)";
     ctx.lineWidth = waveNum >= 6 ? 3 : 2;
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 16, -4);
+    ctx.lineTo(w / 2 - 16, -4);
     ctx.stroke();
 
     ctx.fillStyle = `rgb(${accRgb.join(",")})`;
@@ -487,6 +544,29 @@
     }
     ctx.fill();
 
+    const cg = ctx.createLinearGradient(-10, -h / 2 - 2, 12, -h / 2 + 14);
+    cg.addColorStop(0, "rgba(200,240,255,0.55)");
+    cg.addColorStop(0.5, "rgba(120,200,255,0.25)");
+    cg.addColorStop(1, "rgba(40,80,120,0.15)");
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.ellipse(0, -h / 2 + 10, 14, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(${Math.floor(bodyRgb[0] * 0.35)},${Math.floor(bodyRgb[1] * 0.35)},${Math.floor(bodyRgb[2] * 0.45)},0.92)`;
+    ctx.beginPath();
+    roundRect(ctx, -w / 2 + 10, 2, 18, 18, 6);
+    ctx.fill();
+    ctx.beginPath();
+    roundRect(ctx, w / 2 - 28, 2, 18, 18, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,60,120,0.75)";
+    ctx.beginPath();
+    ctx.arc(-w / 2 + 19, 11, 3, 0, Math.PI * 2);
+    ctx.arc(w / 2 - 19, 11, 3, 0, Math.PI * 2);
+    ctx.fill();
+
     if (shieldCharges > 0) {
       ctx.strokeStyle = "rgba(120,240,255,0.55)";
       ctx.lineWidth = 3;
@@ -495,13 +575,6 @@
       ctx.stroke();
     }
 
-    ctx.fillStyle = `rgba(${Math.floor(bodyRgb[0] * 0.35)},${Math.floor(bodyRgb[1] * 0.35)},${Math.floor(bodyRgb[2] * 0.45)},0.88)`;
-    ctx.beginPath();
-    roundRect(ctx, -w / 2 + 10, 2, 18, 18, 6);
-    ctx.fill();
-    ctx.beginPath();
-    roundRect(ctx, w / 2 - 28, 2, 18, 18, 6);
-    ctx.fill();
     ctx.restore();
   }
 
@@ -573,40 +646,167 @@
     ctx.arc(x, y, rad, 0, Math.PI * 2);
   }
 
-  function drawAlienFace(x, y, rad, color) {
-    const eo = Math.max(5, rad * 0.28);
-    ctx.fillStyle = "#fff";
+  function drawEvilAlienFace(x, y, rad, a) {
+    const kind = a.kind || "grunt";
+    const blink = 0.85 + 0.15 * Math.sin(tGame * 5 + a.phase);
+    const eo = Math.max(5, rad * 0.3);
+    const eyeR = rad * 0.24 * blink;
+    const pup = rad * 0.11;
+
+    ctx.fillStyle = "rgba(40,0,20,0.5)";
     ctx.beginPath();
-    ctx.arc(x - eo, y - 2, rad * 0.26, 0, Math.PI * 2);
-    ctx.arc(x + eo, y - 2, rad * 0.26, 0, Math.PI * 2);
+    ctx.moveTo(x - eo - 4, y - 4);
+    ctx.lineTo(x - eo + 6, y - 10);
+    ctx.lineTo(x - 2, y - 6);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#222";
     ctx.beginPath();
-    ctx.arc(x - eo + 2, y, rad * 0.1, 0, Math.PI * 2);
-    ctx.arc(x + eo + 2, y, rad * 0.1, 0, Math.PI * 2);
+    ctx.moveTo(x + eo + 4, y - 4);
+    ctx.lineTo(x + eo - 6, y - 10);
+    ctx.lineTo(x + 2, y - 6);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = "rgba(40,20,60,0.85)";
-    ctx.lineWidth = 3;
+
+    const eyeGlow = ctx.createRadialGradient(x - eo, y - 3, 1, x - eo, y - 2, eyeR + 2);
+    eyeGlow.addColorStop(0, "#ffefa8");
+    eyeGlow.addColorStop(0.55, "#ff3060");
+    eyeGlow.addColorStop(1, "#400018");
+    ctx.fillStyle = eyeGlow;
     ctx.beginPath();
-    ctx.arc(x, y + rad * 0.22, rad * 0.55, (200 * Math.PI) / 180, (340 * Math.PI) / 180);
+    ctx.ellipse(x - eo, y - 2, eyeR * 0.85, eyeR, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(x + eo, y - 2, eyeR * 0.85, eyeR, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0a0208";
+    ctx.beginPath();
+    ctx.arc(x - eo + 2, y + 1, pup, 0, Math.PI * 2);
+    ctx.arc(x + eo - 2, y + 1, pup, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.beginPath();
+    ctx.arc(x - eo - 3, y - 5, rad * 0.06, 0, Math.PI * 2);
+    ctx.arc(x + eo + 3, y - 5, rad * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(80,0,30,0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - eo * 0.5, y + rad * 0.08);
+    ctx.lineTo(x, y + rad * 0.16);
+    ctx.lineTo(x + eo * 0.5, y + rad * 0.08);
     ctx.stroke();
+
+    const teethN = kind === "tank" ? 7 : 5;
+    ctx.fillStyle = "rgba(255,240,230,0.92)";
+    for (let i = 0; i < teethN; i++) {
+      const t = i / (teethN - 1) - 0.5;
+      const tx = x + t * rad * 0.72;
+      const ty = y + rad * 0.28 + Math.abs(t) * 4;
+      ctx.beginPath();
+      ctx.moveTo(tx - 4, ty);
+      ctx.lineTo(tx, ty + 8 + (kind === "tank" ? 4 : 0));
+      ctx.lineTo(tx + 4, ty);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = "rgba(255,60,90,0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y + rad * 0.26, rad * 0.52, (205 * Math.PI) / 180, (335 * Math.PI) / 180);
+    ctx.stroke();
+
+    if (kind === "scout") {
+      ctx.strokeStyle = "rgba(255,200,120,0.7)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - rad * 0.55);
+      ctx.lineTo(x - 3, y - rad * 0.95);
+      ctx.lineTo(x + 3, y - rad * 0.95);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  function drawAlienExtras(a, rad, rot) {
+    const { x, y } = a;
+    const kind = a.kind || "grunt";
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot * 0.4);
+    if (kind === "tank") {
+      ctx.strokeStyle = "rgba(60,20,40,0.55)";
+      ctx.lineWidth = 4;
+      for (let i = 0; i < 3; i++) {
+        const ry = -rad * 0.4 + i * (rad * 0.35);
+        ctx.beginPath();
+        ctx.moveTo(-rad * 0.85, ry);
+        ctx.lineTo(rad * 0.85, ry);
+        ctx.stroke();
+      }
+    } else if (kind === "scout") {
+      ctx.strokeStyle = "rgba(255,160,200,0.55)";
+      ctx.lineWidth = 2;
+      for (let s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(s * rad * 0.35, -rad * 0.2);
+        ctx.quadraticCurveTo(s * rad * 1.05, -rad * 0.55, s * rad * 0.75, -rad * 0.05);
+        ctx.stroke();
+      }
+    } else {
+      const tent = 4;
+      ctx.strokeStyle = "rgba(180,100,255,0.45)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < tent; i++) {
+        const ang = (i / tent) * Math.PI * 2 + tGame * 1.5 + a.phase;
+        const len = rad * (0.55 + 0.08 * Math.sin(tGame * 3 + i));
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * rad * 0.5, Math.sin(ang) * rad * 0.5);
+        ctx.quadraticCurveTo(
+          Math.cos(ang) * rad * 0.95,
+          Math.sin(ang) * rad * 0.95,
+          Math.cos(ang) * (rad + len),
+          Math.sin(ang) * (rad + len)
+        );
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function drawAlien(a) {
     const { x, y, radius: rad, color } = a;
     const shape = a.shape || "circle";
     const rot = a.phase * 0.15 + tGame * (shape === "crystal" ? 0.7 : 0.25);
+    ctx.save();
+    ctx.shadowColor = `rgb(${Math.min(255, color[0] + 40)},${color[1]},${color[2]})`;
+    ctx.shadowBlur = shape === "star" || shape === "crystal" ? 16 : 10;
     alienSilhouettePath(x, y, rad, shape, rot);
-    const ag = ctx.createRadialGradient(x - 6, y - 8, 4, x, y, rad * 1.08);
-    ag.addColorStop(0, "#ffffff55");
-    ag.addColorStop(0.35, `rgb(${color.join(",")})`);
-    ag.addColorStop(1, "#2a1a44");
+    const ag = ctx.createRadialGradient(x - rad * 0.35, y - rad * 0.4, 3, x, y, rad * 1.15);
+    ag.addColorStop(0, "#ffffff66");
+    ag.addColorStop(0.28, `rgb(${color.join(",")})`);
+    ag.addColorStop(0.72, `rgb(${Math.floor(color[0] * 0.35)},${Math.floor(color[1] * 0.28)},${Math.floor(color[2] * 0.42)})`);
+    ag.addColorStop(1, "#140818");
     ctx.fillStyle = ag;
     ctx.fill();
-    ctx.strokeStyle = shape === "star" || shape === "crystal" ? "rgba(255,200,140,0.85)" : "rgba(40,20,60,0.9)";
-    ctx.lineWidth = shape === "hex" ? 3.5 : 3;
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle =
+      shape === "star" || shape === "crystal"
+        ? "rgba(255,210,150,0.9)"
+        : "rgba(255,80,120,0.55)";
+    ctx.lineWidth = shape === "hex" ? 3.5 : 2.5;
     ctx.stroke();
-    drawAlienFace(x, y, rad, color);
+    ctx.restore();
+
+    drawAlienExtras(a, rad, rot);
+
+    alienSilhouettePath(x, y, rad * 0.98, shape, rot);
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    drawEvilAlienFace(x, y, rad, a);
     if (a.maxHp > 1) {
       const ratio = a.hp / a.maxHp;
       ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -620,20 +820,55 @@
     ctx.save();
     ctx.translate(b.x, b.y);
     const rad = b.radius;
+    const pulse = 0.92 + 0.08 * Math.sin(tGame * 2.2 + b.phase);
+
+    for (let i = 0; i < 8; i++) {
+      const ang = (i / 8) * Math.PI * 2 + tGame * 0.6;
+      const dist = rad * 1.08;
+      const sx = Math.cos(ang) * dist;
+      const sy = Math.sin(ang) * dist;
+      const gr = ctx.createRadialGradient(sx, sy, 2, sx, sy, 18);
+      gr.addColorStop(0, "rgba(255,120,160,0.9)");
+      gr.addColorStop(1, "rgba(80,0,40,0)");
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 10 + pulse * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(0, 0, rad * 1.02, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,140,90,0.35)";
+    ctx.lineWidth = 10;
+    ctx.stroke();
+
     ctx.beginPath();
     ctx.arc(0, 0, rad, 0, Math.PI * 2);
-    const ag = ctx.createRadialGradient(-18, -22, 8, 0, 0, rad);
-    ag.addColorStop(0, "#ff9ecf");
-    ag.addColorStop(0.45, "#6a3a7a");
-    ag.addColorStop(1, "#1a0a28");
+    const ag = ctx.createRadialGradient(-22, -26, 10, 0, 0, rad);
+    ag.addColorStop(0, "#ffc8e8");
+    ag.addColorStop(0.35, "#a05090");
+    ag.addColorStop(0.7, "#402058");
+    ag.addColorStop(1, "#120818");
     ctx.fillStyle = ag;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,200,120,0.9)";
+    ctx.strokeStyle = "rgba(255,220,160,0.95)";
     ctx.lineWidth = 4;
     ctx.stroke();
-    drawAlienFace(0, 0, rad, [255, 200, 120]);
+
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      ctx.fillStyle = i % 2 === 0 ? "rgba(90,30,60,0.9)" : "rgba(40,20,50,0.85)";
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * (rad * 0.55), Math.sin(a) * (rad * 0.55));
+      ctx.lineTo(Math.cos(a + 0.25) * (rad * 1.05), Math.sin(a + 0.25) * (rad * 1.05));
+      ctx.lineTo(Math.cos(a - 0.25) * (rad * 1.05), Math.sin(a - 0.25) * (rad * 1.05));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    drawEvilAlienFace(0, 0, rad, { kind: "tank", phase: b.phase });
     const ratio = b.hp / b.maxHp;
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(-rad, -rad - 14, rad * 2, 7);
     ctx.fillStyle = "#7cf0ff";
     ctx.fillRect(-rad, -rad - 14, rad * 2 * ratio, 7);
@@ -873,7 +1108,7 @@
     const sx = (Math.random() - 0.5) * shake * 2;
     const sy = (Math.random() - 0.5) * shake * 2;
 
-    ctx.setTransform(1, 0, 0, 1, sx, sy);
+    ctx.setTransform(scaleX, 0, 0, scaleY, sx, sy);
     ctx.fillStyle = `rgb(${SPACE.join(",")})`;
     ctx.fillRect(-20, -20, WIDTH + 40, HEIGHT + 40);
 
@@ -1079,6 +1314,7 @@
     requestAnimationFrame(tick);
   }
 
+  resizeGameCanvas();
   refreshMeta().then(() => {
     last = performance.now() / 1000;
     requestAnimationFrame(tick);
