@@ -15,10 +15,17 @@
   box-sizing: border-box;
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 html,
 body {
   margin: 0;
-  min-height: 100%;
   font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
   color: var(--text);
   background: #050714;
@@ -26,29 +33,61 @@ body {
 
 body {
   line-height: 1.45;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
 }
 
 .game-body {
-  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow: hidden;
+  position: relative;
 }
 
+/* מילוי מסך מלא; dir=rtl על המסמך דוחף לעיתים canvas מוצמד לימין אם לא מוגדר display/position במפורש */
 .canvas-root {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
   z-index: 1;
+  direction: ltr;
   background: radial-gradient(ellipse 140% 90% at 50% 0%, #152060 0%, #070814 45%, #03040c 100%);
 }
 
-#game {
-  display: block;
-  width: 100%;
-  height: 100%;
+#game,
+canvas#game {
+  position: fixed;
+  inset: 0;
+  display: block !important;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
   background: #070814;
   outline: none;
   cursor: crosshair;
   image-rendering: auto;
+  z-index: 2;
 }
 
 .server-line {
@@ -62,7 +101,7 @@ body {
   left: 50%;
   bottom: max(0.5rem, env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 15;
   margin: 0;
   padding: 0.2rem 0.75rem;
   font-size: clamp(0.68rem, 1.6vw, 0.82rem);

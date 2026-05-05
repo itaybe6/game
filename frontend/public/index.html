@@ -5,9 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>חלליות חמודות — פרונט נפרד</title>
     <link rel="stylesheet" href="/static/style.css" />
+    <!-- גיבוי אם style.css לא נטען: בלי display:block הקנבס מוצמד לימין תחת RTL -->
+    <style>
+      html,
+      body.game-body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body class="game-body">
-    <div class="canvas-root" aria-hidden="true">
+    <div class="canvas-root" dir="ltr" aria-hidden="true">
       <canvas id="game" width="960" height="640" tabindex="0"></canvas>
     </div>
     <div id="server-line" class="server-line server-line--overlay" role="status"></div>
